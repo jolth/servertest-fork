@@ -21,17 +21,27 @@ const net = require('node:net');
 const HOSTNAME = '';
 const PORT = 10101;
 
-net.createServer(socket => {
-    //socket.setEncoding('utf8');
-    socket.setTimeout(180000); // 3 minutes of inactivity 
-    console.log("Client connected", socket.address());
+// Length of package for echo
+const LENGTHFORECHO= 25;
 
-    // echo
-    //socket.write(data);
-    socket.pipe(socket);
+const server = net.createServer(socket => {
+    //socket.setEncoding('utf8');
+    socket.setTimeout(240000); // 4 minutes of inactivity
+
+    socket.remoteAddPort = `${socket.remoteAddress}:${socket.remotePort}`;
+    console.log(`Client connected ${socket.remoteAddPort}`);
 
     socket.on('data', (chunk) => {
         console.log(`${new Date()} [${chunk.length}] "${chunk.toString()}"`);
+
+        // echo
+        if (chunk.length === LENGTHFORECHO) {
+            socket.pipe(socket);
+            return;
+        }
+
+        // valid data
+
     });
 
     socket.on('end', () => {
@@ -39,7 +49,8 @@ net.createServer(socket => {
     });
 
     socket.on('error', (err) => {
-        console.log(`Error: ${err}`);
+        console.error(`Socket Error: ${err}`);
+        console.error(new Error().stack);
     });
 
     socket.on('timeout', () => {
@@ -47,6 +58,9 @@ net.createServer(socket => {
         socket.end();
     })
 
-}).listen({port: PORT, host: HOSTNAME}, () => {
-    console.log(`${new Date()} :: server ready and listening on port ${PORT}`);
+});
+
+server.listen({port: PORT, host: HOSTNAME}, () => {
+    console.log("%j :: server ready and listening on port %j\n",
+        new Date(), server.address());
 });
